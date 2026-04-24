@@ -1,3 +1,28 @@
 spring:
   application:
     name: price-aggregator
+
+server:
+  port: 8080
+
+vendors:
+  amazon:
+    base-url: http://localhost:8080
+  flipkart:
+    base-url: http://localhost:8080
+  walmart:
+    base-url: http://localhost:8080
+  connection-timeout-ms: 5000
+  read-timeout-ms: 5000
+  cache:
+    max-size: 1000
+    expire-after-write-minutes: 10
+
+price:
+  fetch:
+    timeout-ms: 2000
+  pool:
+    core-size: 3
+    max-size: 10
+    queue-capacity: 100
+    thread-name-prefix: price-fetch-
