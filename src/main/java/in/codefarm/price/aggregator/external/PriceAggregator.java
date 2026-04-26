@@ -4,6 +4,6 @@ public interface PriceAggregator {
 
     double getPrice(String productId);
 
-    double lastFetchedPrice();
+    double getFallbackPrice(String productId);
 
 }
