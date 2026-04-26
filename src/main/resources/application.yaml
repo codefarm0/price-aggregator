@@ -1,9 +1,20 @@
 spring:
+  config:
+    import: optional:file:./config/application.yaml
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
   application:
     name: price-aggregator
 
 server:
   port: 8080
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: default
 
 vendors:
   amazon:
@@ -14,9 +25,6 @@ vendors:
     base-url: http://localhost:8080
   connection-timeout-ms: 5000
   read-timeout-ms: 5000
-  cache:
-    max-size: 1000
-    expire-after-write-minutes: 10
 
 price:
   fetch:
@@ -26,3 +34,45 @@ price:
     max-size: 10
     queue-capacity: 100
     thread-name-prefix: price-fetch-
+  cache:
+    ttl-minutes: 10
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+          max-wait: 3000ms
+
+vendors:
+  amazon:
+    base-url: http://host.docker.internal:8080
+  flipkart:
+    base-url: http://host.docker.internal:8080
+  walmart:
+    base-url: http://host.docker.internal:8080
+  connection-timeout-ms: 5000
+  read-timeout-ms: 5000
+
+price:
+  fetch:
+    timeout-ms: 2000
+  pool:
+    core-size: 3
+    max-size: 10
+    queue-capacity: 100
+    thread-name-prefix: price-fetch-
+  cache:
+    ttl-minutes: 10

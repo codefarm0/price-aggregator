@@ -1,8 +1,5 @@
 package in.codefarm.price.aggregator.config;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +8,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
@@ -29,12 +25,6 @@ public class PriceConfig {
 
     @Value("${price.pool.thread-name-prefix:price-fetch-}")
     private String threadNamePrefix;
-
-    @Value("${vendors.cache.max-size:1000}")
-    private int cacheMaxSize;
-
-    @Value("${vendors.cache.expire-after-write-minutes:10}")
-    private int cacheExpireMinutes;
 
     @Bean(name = "priceTaskExecutor")
     public Executor priceTaskExecutor() {
@@ -57,14 +47,5 @@ public class PriceConfig {
         executor.setAwaitTerminationSeconds(60);
         executor.initialize();
         return executor;
-    }
-
-    @Bean
-    public Cache<String, Double> priceCache() {
-        return Caffeine.newBuilder()
-                .maximumSize(cacheMaxSize)
-                .expireAfterWrite(cacheExpireMinutes, TimeUnit.MINUTES)
-                .recordStats()
-                .build();
     }
 }
