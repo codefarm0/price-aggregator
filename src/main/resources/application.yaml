@@ -9,6 +9,44 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 1000ms
+        slowCallRateThreshold: 50
+        recordExceptions:
+          - java.lang.RuntimeException
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+    instances:
+      amazon:
+        baseConfig: default
+      flipkart:
+        baseConfig: default
+      walmart:
+        baseConfig: default
+
 ---
 
 spring:
@@ -23,8 +61,6 @@ vendors:
     base-url: http://localhost:8080
   walmart:
     base-url: http://localhost:8080
-  connection-timeout-ms: 5000
-  read-timeout-ms: 5000
 
 price:
   fetch:
@@ -46,8 +82,8 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 5000ms
       lettuce:
         pool:
@@ -63,8 +99,6 @@ vendors:
     base-url: http://host.docker.internal:8080
   walmart:
     base-url: http://host.docker.internal:8080
-  connection-timeout-ms: 5000
-  read-timeout-ms: 5000
 
 price:
   fetch:
