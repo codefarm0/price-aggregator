@@ -1,40 +1,41 @@
 package in.codefarm.price.aggregator.external;
 
 import in.codefarm.price.aggregator.dto.PriceResponse;
-import com.github.benmanes.caffeine.cache.Cache;
+import in.codefarm.price.aggregator.service.PriceCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.Optional;
 
 @Component
 public class FlipkartClient implements PriceAggregator {
 
     private static final Logger log = LoggerFactory.getLogger(FlipkartClient.class);
+    private static final String VENDOR = "flipkart";
 
     private final WebClient webClient;
+    private final PriceCacheService cacheService;
     private final String baseUrl;
-    private final Cache<String, Double> priceCache;
 
     public FlipkartClient(
             WebClient webClient,
-            @Qualifier("priceCache") Cache<String, Double> priceCache,
+            PriceCacheService cacheService,
             @Value("${vendors.flipkart.base-url:http://localhost:8080}") String baseUrl) {
         this.webClient = webClient;
-        this.priceCache = priceCache;
+        this.cacheService = cacheService;
         this.baseUrl = baseUrl;
     }
 
     @Override
     public double getPrice(String productId) {
-        Double cachedPrice = priceCache.getIfPresent(productId+"~flipkart");
-        if (cachedPrice != null) {
-            log.info("Cache hit for product {} on Flipkart: {}", productId, cachedPrice);
-            return cachedPrice;
+        Optional<Double> cached = cacheService.get(VENDOR, productId);
+        if (cached.isPresent()) {
+            log.info("Cache hit for product {} on Flipkart: {}", productId, cached.get());
+            return cached.get();
         }
         return fetchPriceFromApi(productId);
     }
@@ -51,7 +52,7 @@ public class FlipkartClient implements PriceAggregator {
                     .block();
 
             if (response != null) {
-                priceCache.put(productId+"~flipkart", response.getPrice());
+                cacheService.set(VENDOR, productId, response.getPrice());
                 log.info("Flipkart price for {}: {}", productId, response.getPrice());
                 return response.getPrice();
             }
@@ -64,7 +65,6 @@ public class FlipkartClient implements PriceAggregator {
 
     @Override
     public double getFallbackPrice(String productId) {
-        Double cached = priceCache.getIfPresent(productId);
-        return cached != null ? cached : 0.0;
+        return cacheService.get(VENDOR, productId).orElse(0.0);
     }
 }

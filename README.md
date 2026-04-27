@@ -2,27 +2,29 @@
 
 A Spring Boot microservice that aggregates product prices from multiple external retailers (Amazon, Walmart, Flipkart).
 
-## Phases
+## Parts
 
-- [x] **Phase 1-3** — Basic Price Fetching (sequential → parallel → with timeout/fallback)
-- [x] **Phase 4** — Spring Boot Aggregator (REST API + WebClient + Connection Pooling) [PHASE4.md](PHASE4.md)
-- [ ] **Phase 5** — Redis Caching Layer
-- [ ] **Phase 6** — Rate Limiting + Bulkheads (Resilience4j)
-- [ ] **Phase 7** — Microservice Architecture (Vendor Adapter Services)
-- [ ] **Phase 8** — Event-Driven Updates (Kafka)
-- [ ] **Phase 9** — Highly Scalable Architecture
+| Part | Description | Status |
+|------|-------------|--------|
+| [Part1.md](Part1.md) | Basic Price Fetching (Phases 1-3) | ✅ |
+| [Part2.md](Part2.md) | Spring Boot Aggregator (REST API + WebClient) | ✅ |
+| [Part3.md](Part3.md) | Redis Caching Layer | ✅ |
+| Part4 | Rate Limiting + Bulkheads (Resilience4j) | 🚧 |
+| Part5 | Microservice Architecture | 🚧 |
+| Part6 | Event-Driven Updates (Kafka) | 🚧 |
+| Part7 | Highly Scalable Architecture | 🚧 |
 
 ## Quick Start
 
+### Development
 ```bash
-# Build
 ./gradlew build
-
-# Run
 ./gradlew bootRun
+```
 
-# Test
-curl http://localhost:8080/api/prices/iphone-15
+### Production (Docker)
+```bash
+docker-compose up --build
 ```
 
 ## API Endpoints
@@ -40,13 +42,18 @@ curl http://localhost:8080/api/prices/iphone-15
 |-----------|-------------|
 | Framework | Spring Boot 4.0.5 |
 | Web | Spring MVC + WebFlux (WebClient) |
-| Cache | Caffeine (in-memory) |
+| Cache | Caffeine (local) + Redis (distributed) |
 | Language | Java 25 |
-| Build | Gradle |
+| Build | Gradle + Jib |
 
 ## Configuration
 
-See [PHASE4.md](PHASE4.md) for detailed configuration and [PHASE4.md#testing-with-curl](curl commands).
+| Profile | Description |
+|---------|-------------|
+| `default` | Local development (no Redis) |
+| `prod` | Production with Redis |
+
+See [Part2.md](Part2.md) and [Part3.md](Part3.md) for details.
 
 ## Project Structure
 
@@ -54,18 +61,25 @@ See [PHASE4.md](PHASE4.md) for detailed configuration and [PHASE4.md#testing-wit
 src/main/java/in/codefarm/price/aggregator/
 ├── PriceAggregatorApplication.java
 ├── config/
-│   ├── PriceConfig.java            # Thread pool + Caffeine cache
-│   └── WebClientConfig.java         # Connection pooling
+│   ├── PriceConfig.java
+│   ├── RedisConfig.java
+│   └── WebClientConfig.java
 ├── controller/
-│   ├── PriceController.java        # REST endpoints
-│   └── MockVendorController.java   # Mock APIs
+│   ├── PriceController.java
+│   └── MockVendorController.java
 ├── dto/
 │   └── PriceResponse.java
 ├── external/
 │   ├── AmazonClient.java
 │   ├── FlipkartClient.java
 │   ├── WalmartClient.java
-│   └── PriceAggregator.java        # Interface
+│   └── PriceAggregator.java
 └── service/
-    └── PriceService.java
+    ├── PriceService.java
+    └── PriceCacheService.java
 ```
+
+## Docker Files
+
+- `Dockerfile` - Application container
+- `docker-compose.yml` - Redis + App orchestration
