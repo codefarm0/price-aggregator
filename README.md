@@ -9,7 +9,7 @@ A Spring Boot microservice that aggregates product prices from multiple external
 | [Part1.md](Part1.md) | Basic Price Fetching (Phases 1-3) | ✅ |
 | [Part2.md](Part2.md) | Spring Boot Aggregator (REST API + WebClient) | ✅ |
 | [Part3.md](Part3.md) | Redis Caching Layer | ✅ |
-| Part4 | Rate Limiting + Bulkheads (Resilience4j) | 🚧 |
+| [Part4.md](Part4.md) | Rate Limiting + Bulkheads (Resilience4j) | ✅ |
 | Part5 | Microservice Architecture | 🚧 |
 | Part6 | Event-Driven Updates (Kafka) | 🚧 |
 | Part7 | Highly Scalable Architecture | 🚧 |

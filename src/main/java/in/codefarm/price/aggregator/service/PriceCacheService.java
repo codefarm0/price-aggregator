@@ -60,6 +60,18 @@ public class PriceCacheService {
         }
     }
 
+    public void evictAll() {
+        try {
+            var keys = redisTemplate.keys(KEY_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+                log.info("Evicted all {} cache entries", keys.size());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to evict all Redis cache: {}", e.getMessage());
+        }
+    }
+
     public boolean isAvailable() {
         try {
             String testKey = "health-check";
