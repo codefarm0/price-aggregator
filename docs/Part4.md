@@ -1,6 +1,6 @@
-# Part 4 — Rate Limiting + Bulkheads
+# Part 4 — Circuit Breaker (Resilience4j)
 
-Vendor APIs impose rate limits and can fail. We need to isolate failures and limit requests.
+Vendor APIs can fail. We use Resilience4j Circuit Breaker to handle failures gracefully.
 
 ## Problem Statement
 
@@ -261,8 +261,151 @@ public class AmazonClient implements PriceAggregator {
 - [x] Configure actuator endpoints for circuit breaker health
 - [x] Add circuit breaker event logging
 - [x] Add chaos endpoints to simulate failures/slow calls
+- [x] Enhanced API response with `PriceResult` DTO
+- [x] Support `X-Refresh-Cache` header for cache control
+- [x] MDC traceId propagation with `MdcTaskDecorator`
+- [x] Proper error responses with HTTP 207 for all-failures
+- [x] Structured logging with `[VENDOR]` prefix and traceId
+- [x] **FIXED** - `traceId` in response header `X-Trace-Id` (not in JSON body - uses `@JsonIgnore`)
+- [x] **FIXED** - `source` field now correctly shows `CACHE`/`API`/`FALLBACK`
+- [x] **FIXED** - Controller cleaned up (no MDC logic, all in TraceIdFilter)
+- [x] **FIXED** - PriceCacheService stores `PriceResult` as JSON with proper `source`
 
-### How Circuit Breaker Works
+## API Response Format
+
+### Response Header
+
+The `X-Trace-Id` header is included in ALL responses (set by `TraceIdFilter`):
+```
+X-Trace-Id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+### New Response Structure (List<PriceResult>)
+
+```json
+[
+  {
+    "vendor": "amazon",
+    "price": 999.99,
+    "timestamp": 1777198215258,
+    "source": "CACHE",
+    "error": null
+  },
+  {
+    "vendor": "flipkart",
+    "price": null,
+    "timestamp": null,
+    "source": "FALLBACK",
+    "error": "No price available"
+  }
+]
+```
+
+Note: `traceId` is NOT in the JSON body - it's in the `X-Trace-Id` response header.
+
+### Source Enum Values
+
+| Value | Meaning |
+|-------|---------|
+| `CACHE` | Price from Redis cache |
+| `API` | Fresh from 3rd party API |
+| `FALLBACK` | Fallback when API fails (may be from cache) |
+
+### Cache Control Header
+
+```bash
+# Use cache if available (default)
+curl http://localhost:8080/api/prices/iphone-15
+
+# Force fresh API call (skip cache read)
+curl -H "X-Refresh-Cache: true" http://localhost:8080/api/prices/iphone-15
+```
+
+### Error Handling
+
+When ALL vendors fail, API returns **HTTP 207 (Multi-Status)** with error details:
+```json
+[
+  {
+    "vendor": "amazon",
+    "price": null,
+    "error": "No price available",
+    "source": "FALLBACK"
+  }
+]
+```
+
+## MDC TraceId Propagation
+
+### How It Works
+
+1. **TraceIdFilter** intercepts all requests
+2. Generates/reads `X-Trace-Id` header, sets response header
+3. Sets `MDC.put("traceId", traceId)` for logging
+4. **MdcTaskDecorator** propagates MDC to async threads via `priceTaskExecutor`
+5. **WebClient** propagates `X-Trace-Id` header to 3rd party APIs via `ExchangeFilterFunction`
+6. All logs across controller → service → clients → 3rd party show same `traceId`
+7. `traceId` is returned in **response header** `X-Trace-Id` (NOT in JSON body)
+
+### Structured Logging Format
+
+Configured in `logback-spring.xml` - format: `timestamp [thread][app-name][traceId] level logger - message`:
+
+```xml
+<property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread][%property{app-name}][traceId=%X{traceId:-N/A}] %-5level %logger{36} - %msg%n"/>
+```
+
+Example output (traceId appears ONLY in pattern, NOT duplicated in message):
+```
+2026-04-28 10:00:00.123 [http-nio-8080-exec-1][price-aggregator][traceId=abc-123] INFO  c.c.p.a.controller.PriceController - GET /api/prices/iphone-15 refreshCache=false
+2026-04-28 10:00:00.456 [price-fetch-1][price-aggregator][traceId=abc-123] INFO  c.c.p.a.external.AmazonClient - [AMAZON] productId=iphone-15 source=API price=999.99
+2026-04-28 10:00:00.789 [price-fetch-2][price-aggregator][traceId=abc-123] WARN  c.c.p.a.external.FlipkartClient - [FLIPKART] circuit breaker triggered
+2026-04-28 10:00:01.012 [mock-api-1][price-aggregator][traceId=abc-123] INFO  c.c.p.a.mock.MockVendorController - [MOCK-AMAZON] productId=iphone-15
+```
+
+### TraceId Propagation to 3rd Party
+
+WebClient configured with `ExchangeFilterFunction` that adds `X-Trace-Id` header to outgoing requests:
+
+```java
+// WebClientConfig.java
+private ExchangeFilterFunction traceIdPropagationFilter() {
+    return ExchangeFilterFunction.ofRequestProcessor(request -> {
+        String traceId = MDC.get("traceId");
+        if (traceId != null && !traceId.isEmpty()) {
+            ClientRequest newRequest = ClientRequest.from(request)
+                    .header(TRACE_ID_HEADER, traceId)
+                    .build();
+            return Mono.just(newRequest);
+        }
+        return Mono.just(request);
+    });
+}
+```
+
+### Response Header
+
+```
+X-Trace-Id: abc-123-def-456...
+```
+
+The `traceId` field in `PriceResult` is marked `@JsonIgnore` so it doesn't appear in the JSON body.
+
+### Configuration
+
+**MdcTaskDecorator** (in `PriceConfig.java`):
+```java
+@Bean(name = "priceTaskExecutor")
+public Executor priceTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    // ... other config ...
+    executor.setTaskDecorator(new MdcTaskDecorator()); // MDC propagation
+    executor.initialize();
+    return executor;
+}
+```
+
+## How Circuit Breaker Works
 
 1. Client calls vendor API method
 2. `circuitBreaker.executeSupplier()` wraps the API call

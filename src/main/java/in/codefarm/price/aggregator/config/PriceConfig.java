@@ -1,5 +1,6 @@
 package in.codefarm.price.aggregator.config;
 
+import in.codefarm.price.aggregator.config.MdcTaskDecorator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,6 +44,8 @@ public class PriceConfig {
                 return thread;
             }
         });
+        // Add MDC propagation via TaskDecorator
+        executor.setTaskDecorator(new MdcTaskDecorator());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
         executor.initialize();

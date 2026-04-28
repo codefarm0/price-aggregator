@@ -1,9 +1,10 @@
 package in.codefarm.price.aggregator.external;
 
+import in.codefarm.price.aggregator.dto.PriceResult;
+
 public interface PriceAggregator {
 
-    double getPrice(String productId);
+    PriceResult getPrice(String productId, boolean refreshCache);
 
-    double getFallbackPrice(String productId);
-
+    PriceResult getFallbackPrice(String productId, Throwable t);
 }
