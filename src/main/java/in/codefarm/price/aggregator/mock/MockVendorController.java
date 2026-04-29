@@ -2,8 +2,10 @@ package in.codefarm.price.aggregator.mock;
 
 import in.codefarm.price.aggregator.dto.PriceResponse;
 import in.codefarm.price.aggregator.service.PriceCacheService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +23,7 @@ public class MockVendorController {
     private static final Logger log = LoggerFactory.getLogger(MockVendorController.class);
     private final Random random = new Random();
     private final PriceCacheService cacheService;
-    
+
     // Chaos mode settings
     private final AtomicBoolean chaosEnabled = new AtomicBoolean(false);
     private final AtomicInteger failureRatePercent = new AtomicInteger(0); // 0-100
@@ -32,27 +34,38 @@ public class MockVendorController {
     }
 
     @GetMapping("/amazon/{productId}")
-    public PriceResponse getAmazonPrice(@PathVariable String productId) {
-        log.info("fetching price from amazon for product {}", productId);
+    public PriceResponse getAmazonPrice(@PathVariable String productId, HttpServletRequest request) {
+        getTraceId(request);
+        log.info("[MOCK-AMAZON] productId={}", productId);
         simulateChaos("amazon");
         double price = generatePrice();
         return new PriceResponse(productId, price, "amazon");
     }
 
     @GetMapping("/flipkart/{productId}")
-    public PriceResponse getFlipkartPrice(@PathVariable String productId) {
-        log.info("fetching price from flipkart for product {}", productId);
+    public PriceResponse getFlipkartPrice(@PathVariable String productId, HttpServletRequest request) {
+        getTraceId(request);
+        log.info("[MOCK-FLIPKART] productId={}", productId);
         simulateChaos("flipkart");
         double price = generatePrice();
         return new PriceResponse(productId, price, "flipkart");
     }
 
     @GetMapping("/walmart/{productId}")
-    public PriceResponse getWalmartPrice(@PathVariable String productId) {
-        log.info("fetching price from walmart for product {}", productId);
+    public PriceResponse getWalmartPrice(@PathVariable String productId, HttpServletRequest request) {
+        getTraceId(request);
+        log.info("[MOCK-WALMART] productId={}", productId);
         simulateChaos("walmart");
         double price = generatePrice();
         return new PriceResponse(productId, price, "walmart");
+    }
+
+    private String getTraceId(HttpServletRequest request) {
+        String traceId = request.getHeader("X-Trace-Id");
+        if (traceId != null && !traceId.isEmpty()) {
+            MDC.put("traceId", traceId);
+        }
+        return traceId != null ? traceId : "N/A";
     }
 
 

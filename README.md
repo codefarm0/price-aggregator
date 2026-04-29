@@ -150,7 +150,30 @@ Technical articles in `medium-stories/`:
 - `01-thread-pool-mdc-propagation.md` - Building MDC-Aware Thread Pool
 - `02-resilience-circuit-breaker.md` - Resilience4j Patterns
 
+## Documentation
+
+All documentation is in the [docs/](docs/) folder:
+- [Part 1: Basic Price Fetching](docs/Part1.md)
+- [Part 2: Spring Boot Aggregator](docs/Part2.md)
+- [Part 3: Redis Caching](docs/Part3.md)
+- [Part 4: Circuit Breaker](docs/Part4.md)
+- [Part 5: TraceId & Logging](docs/Part5.md)
+
 ## Docker Files
 
 - `Dockerfile` - Application container
 - `docker-compose.yml` - Redis + App orchestration
+
+## Building
+
+```bash
+./gradlew build
+./gradlew bootJar
+```
+
+## Testing
+
+```bash
+./gradlew test
+./cb-test.sh help    # Circuit breaker testing script
+```
