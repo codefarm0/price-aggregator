@@ -1,15 +1,16 @@
 package in.codefarm.price.aggregator.service;
 
+import in.codefarm.price.aggregator.dto.PriceResult;
 import in.codefarm.price.aggregator.external.PriceAggregator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -33,33 +34,43 @@ public class PriceService {
         this.timeoutMs = timeoutMs;
     }
 
-    public Map<String, Double> fetchPrices(String productId) {
-        long start = Instant.now().toEpochMilli();
+    public List<PriceResult> fetchPrices(String productId, boolean refreshCache) {
+        String traceId = MDC.get("traceId");
+        if (traceId == null) {
+            traceId = java.util.UUID.randomUUID().toString();
+            MDC.put("traceId", traceId);
+        }
 
-        List<CompletableFuture<Double>> futures = priceAggregators.stream()
-                .map(client -> fetchWithFallback(client, productId))
+        long start = Instant.now().toEpochMilli();
+        log.info("Fetching prices for product={} refreshCache={}", productId, refreshCache);
+
+        List<CompletableFuture<PriceResult>> futures = priceAggregators.stream()
+                .map(client -> fetchWithFallback(client, productId, refreshCache))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        Map<String, Double> prices = priceAggregators.stream()
-                .collect(Collectors.toMap(
-                        c -> c.getClass().getSimpleName().replace("Client", "").toLowerCase(),
-                        c -> futures.get(priceAggregators.indexOf(c)).join()));
+        List<PriceResult> results = futures.stream()
+                .map(CompletableFuture::join)
+                .toList();
 
-        log.info("Fetched prices for product {} in {} ms", productId,
-                Instant.now().toEpochMilli() - start);
+        long duration = Instant.now().toEpochMilli() - start;
+        log.info("Fetched {} results for product={} in {}ms",
+                results.size(), productId, duration);
 
-        return prices;
+        return results;
     }
 
-    private CompletableFuture<Double> fetchWithFallback(PriceAggregator client, String productId) {
-        return CompletableFuture.supplyAsync(() -> client.getPrice(productId), priceTaskExecutor)
+    private CompletableFuture<PriceResult> fetchWithFallback(PriceAggregator client, String productId, boolean refreshCache) {
+        return CompletableFuture.supplyAsync(() -> {
+            // MDC is automatically propagated via MdcTaskDecorator
+            return client.getPrice(productId, refreshCache);
+        }, priceTaskExecutor)
                 .orTimeout(timeoutMs, TimeUnit.MILLISECONDS)
                 .exceptionally(ex -> {
                     log.warn("Failed to fetch price from {}, using fallback",
                             client.getClass().getSimpleName());
-                    return client.getFallbackPrice(productId);
+                    return client.getFallbackPrice(productId, ex);
                 });
     }
 }
