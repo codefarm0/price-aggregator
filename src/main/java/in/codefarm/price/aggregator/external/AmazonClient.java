@@ -32,7 +32,7 @@ public class AmazonClient implements PriceAggregator {
             WebClient webClient,
             PriceCacheService cacheService,
             CircuitBreakerRegistry circuitBreakerRegistry,
-            @Value("${vendors.amazon.base-url:http://localhost:8080}") String baseUrl) {
+            @Value("${vendors.amazon.base-url}") String baseUrl) {
         this.webClient = webClient;
         this.cacheService = cacheService;
         this.baseUrl = baseUrl;
@@ -94,7 +94,7 @@ public class AmazonClient implements PriceAggregator {
             }
         } catch (Exception e) {
             log.warn("[{}] productId={} API call failed, circuit state: {}",
-                      VENDOR.toUpperCase(), productId, circuitBreaker.getState());
+                      VENDOR.toUpperCase(), productId, circuitBreaker.getState(), e);
         }
 
         return getFallbackPrice(productId, null, traceId);
