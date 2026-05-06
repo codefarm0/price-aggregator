@@ -56,11 +56,11 @@ spring:
 
 vendors:
   amazon:
-    base-url: http://localhost:8080
+    base-url: http://localhost:8081
   flipkart:
-    base-url: http://localhost:8080
+    base-url: http://localhost:8082
   walmart:
-    base-url: http://localhost:8080
+    base-url: http://localhost:8083
 
 price:
   fetch:
