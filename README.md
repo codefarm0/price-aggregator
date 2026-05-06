@@ -6,23 +6,30 @@ A Spring Boot microservice that aggregates product prices from multiple external
 
 | Part | Description | Status |
 |------|-------------|--------|
-| [Part 1-3](docs/Part1-3.md) | Basic Price Fetching, Spring Boot Aggregator, Redis Caching | ✅ |
-| [Part 4](docs/Part4.md) | Resilience4j Circuit Breaker + Rate Limiting | ✅ |
-| [Part 5](docs/Part5.md) | End-to-End TraceId Propagation & Structured Logging | ✅ |
-| [Part 6](docs/Part6.md) | Completing Resiliency (Bulkhead, TimeLimiter, Retry) | 🚧 |
-| [Part 7](docs/Part7.md) | Unit Tests | 🚧 |
-| [Part 8](docs/Part8.md) | Integration Tests | 🚧 |
-| [Part 9](docs/Part9.md) | Load Testing - Performance Testing | 🚧 |
-| [Part 10](docs/Part10.md) | Event-Driven Updates (Kafka) | 🚧 |
-| [Part 11](docs/Part11.md) | Micrometer Integration for Observability | 🚧 |
-| [Part 12](docs/Part12.md) | ELK Stack for Application Monitoring | 🚧 |
+| [Part1](Part1.md) | Basic Price Fetching (Phases 1-3) | ✅ |
+| [Part2](Part2.md) | Spring Boot Aggregator (REST API + WebClient) | ✅ |
+| [Part3](Part3.md) | Redis Caching Layer | ✅ |
+| [Part4](Part4.md) | Circuit Breaker (Resilience4j) | ✅ |
+| [Part5](Part4.md) | TraceId Propagation & Structured Logging | ✅ |
+| **[Part6](Part4.md)** | **Mock Services Refactoring (Distributed Architecture)** | ✅ |
+| [Part7](Part4.md) | Unit Tests | 🚧 |
+| [Part8](Part4.md) | Integration Tests | 🚧 |
+| [Part9](Part4.md) | Load Testing - Performance Testing | 🚧 |
+| [Part10](Part4.md) | Event-Driven Updates (Kafka) | 🚧 |
+| [Part11](Part4.md) | Micrometer Integration for Observability | 🚧 |
+| [Part12](Part4.md) | ELK Stack for Application Monitoring | 🚧 |
 
 ## Quick Start
 
 ### Development
 ```bash
-./gradlew build
-./gradlew bootRun
+# Start mock services (in separate terminals)
+cd amazon-mock && ./gradlew bootRun  # Port 8081
+cd flipkart-mock && ./gradlew bootRun  # Port 8082
+cd walmart-mock && ./gradlew bootRun  # Port 8083
+
+# Start price-aggregator
+./gradlew bootRun  # Port 8080
 ```
 
 ### Production (Docker)
@@ -32,17 +39,18 @@ docker-compose up --build
 
 ## API Endpoints
 
+### Price Aggregator (Port 8080)
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/prices/{productId}` | Fetch prices (returns List<PriceResult>) |
+| `GET /api/prices/{productId}` | Fetch prices from all vendors |
 | `GET /api/prices/{productId}` + `X-Refresh-Cache: true` | Force fresh API call |
-| `GET /mock-api/amazon/{productId}` | Mock Amazon API |
-| `GET /mock-api/flipkart/{productId}` | Mock Flipkart API |
-| `GET /mock-api/walmart/{productId}` | Mock Walmart API |
-| `GET /mock-api/chaos/scenario/fast-failures` | Simulate 100% failures |
-| `GET /mock-api/chaos/scenario/slow-responses` | Simulate 500ms delays |
-| `GET /mock-api/chaos/scenario/unstable` | Simulate 70% failures + 3s delay |
-| `GET /mock-api/chaos/reset` | Reset chaos mode |
+
+### Mock Services (Standalone)
+| Service | Port | Endpoint |
+|---------|------|----------|
+| Amazon Mock | 8081 | `GET http://localhost:8081/mock-api/amazon/{productId}` |
+| Flipkart Mock | 8082 | `GET http://localhost:8082/mock-api/flipkart/{productId}` |
+| Walmart Mock | 8083 | `GET http://localhost:8083/mock-api/walmart/{productId}` |
 
 ### Response Headers
 | Header | Description |
@@ -62,42 +70,85 @@ docker-compose up --build
 | Language | Java 25 |
 | Build | Gradle + Jib |
 
+## Project Structure
+
+```
+price-aggregator/                    # Main aggregator service
+├── src/main/java/in/codefarm/price/aggregator/
+│   ├── controller/PriceController.java
+│   ├── config/ (TraceIdFilter, MdcTaskDecorator, PriceConfig)
+│   ├── external/ (AmazonClient, FlipkartClient, WalmartClient)
+│   ├── service/ (PriceService, PriceCacheService)
+│   └── dto/ (PriceResult, PriceSource)
+├── medium-stories/ (Medium articles)
+├── Part1.md, Part2.md, Part3.md, Part4.md
+└── README.md
+
+amazon-mock/                         # Standalone Amazon mock service
+├── src/main/java/in/codefarm/amazon/mock/
+│   ├── AmazonMockApplication.java
+│   ├── controller/AmazonMockController.java
+│   ├── config/TraceIdFilter.java
+│   └── dto/PriceResponse.java
+└── GitHub: github.com/code-farm0/amazon-mock
+
+flipkart-mock/                      # Standalone Flipkart mock service
+├── src/main/java/in/codefarm/flipkart/mock/
+│   └── (similar structure)
+└── GitHub: github.com/code-farm0/flipkart-mock
+
+walmart-mock/                       # Standalone Walmart mock service
+├── src/main/java/in/codefarm/walmart/mock/
+│   └── (similar structure)
+└── GitHub: github.com/code-farm0/walmart-mock
+```
+
+## Mock Services (Distributed Architecture)
+
+The mock vendor APIs have been **extracted into separate Spring Boot services** to simulate a true distributed architecture:
+
+| Service | GitHub URL |
+|---------|------------|
+| amazon-mock | [github.com/code-farm0/amazon-mock](https://github.com/code-farm0/amazon-mock) |
+| flipkart-mock | [github.com/code-farm0/flipkart-mock](https://github.com/code-farm0/flipkart-mock) |
+| walmart-mock | [github.com/code-farm0/walmart-mock](https://github.com/code-farm0/walmart-mock) |
+
+**Main Aggregator:**
+| Service | GitHub URL |
+|---------|------------|
+| price-aggregator | [github.com/code-farm0/price-aggregator](https://github.com/code-farm0/price-aggregator) |
+
+### Minimal Features in Each Mock Service:
+- REST endpoint: `GET /mock-api/{vendor}/{productId}`
+- Random price generation with timestamp
+- TraceId propagation (reads `X-Trace-Id` header, sets MDC)
+- Structured logging (same logback pattern)
+- Health endpoint (`/actuator/health`)
+- Chaos mode (in-memory state for testing)
+- Chaos endpoints (`/chaos/enable`, `/disable`, `/reset`, `/status`)
+- Predefined scenarios (`/chaos/scenario/fast-failures`, etc.)
+
 ## Configuration
 
 | Profile | Description |
 |---------|-------------|
-| `default` | Local development (with Redis required) |
+| `default` | Local development (with Redis) |
 | `prod` | Production with Redis |
 
-## Project Structure
+## Documentation
 
-```
-src/main/java/in/codefarm/price/aggregator/
-├── PriceAggregatorApplication.java
-├── config/
-│   ├── PriceConfig.java           # Thread pool + MdcTaskDecorator
-│   ├── TraceIdFilter.java        # MDC traceId from header
-│   ├── MdcTaskDecorator.java     # MDC propagation for async
-│   ├── WebClientConfig.java      # WebClient with traceId propagation
-│   ├── RedisConfig.java
-│   └── logback-spring.xml       # Structured logging config
-├── controller/
-│   ├── PriceController.java      # Returns List<PriceResult>
-│   └── mock/
-│       └── MockVendorController.java  # Mock APIs with traceId support
-├── dto/
-│   ├── PriceResponse.java       # 3rd party API response
-│   ├── PriceResult.java         # API response DTO (with source, traceId)
-│   └── PriceSource.java        # Enum: CACHE, API, FALLBACK
-├── external/
-│   ├── AmazonClient.java       # With CircuitBreaker + MDC logging
-│   ├── FlipkartClient.java
-│   ├── WalmartClient.java
-│   └── PriceAggregator.java    # Interface returning PriceResult
-└── service/
-    ├── PriceService.java        # Returns List<PriceResult>
-    └── PriceCacheService.java  # Stores PriceResult as JSON in Redis
-```
+All documentation is in the project root:
+- `Part1.md` - Basic Price Fetching
+- `Part2.md` - Spring Boot Aggregator
+- `Part3.md` - Redis Caching
+- `Part4.md` - Circuit Breaker + TraceId + Logging
+- `Part6.md` - Mock Services Refactoring (Distributed Architecture)
+
+## Medium Stories
+
+Technical articles in `medium-stories/`:
+- `01-thread-pool-mdc-propagation.md` - Building MDC-Aware Thread Pool
+- `02-resilience-circuit-breaker.md` - Resilience4j Patterns
 
 ## Documentation
 
