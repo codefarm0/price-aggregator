@@ -2,7 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.6'
 	id 'io.spring.dependency-management' version '1.1.7'
-//	id 'com.google.cloud.tools.jib' version '3.4.4'
+	id 'jacoco'
 }
 
 group = 'in.codefarm'
@@ -16,11 +16,13 @@ java {
 
 repositories {
 	mavenCentral()
-//	maven { url 'https://central.sonatype.com/repository/maven-snapshots' }
 }
 
 ext {
 	set('springCloudVersion', "2025.1.1")
+	set('wiremockVersion', "3.13.1")
+	set('testcontainersVersion', "2.0.5")
+	set('testcontainersJunitVersion', "1.21.4")
 }
 
 dependencies {
@@ -29,16 +31,76 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+	// Test dependencies
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+	testImplementation "org.testcontainers:testcontainers:${testcontainersVersion}"
+	testImplementation("org.testcontainers:junit-jupiter:${testcontainersJunitVersion}")
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+		mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
 	}
 }
+
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestReport
 }
 
+// JaCoCo configuration
+jacoco {
+	toolVersion = "0.8.13"
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = false
+	}
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				'in/codefarm/price/aggregator/PriceAggregatorApplication.class',
+				'in/codefarm/price/aggregator/config/*',
+				'in/codefarm/price/aggregator/dto/*',
+				'in/codefarm/price/aggregator/mock/**'
+			])
+		}))
+	}
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				minimum = 0.60
+			}
+		}
+		rule {
+			element = 'CLASS'
+			includes = [
+				'in.codefarm.price.aggregator.controller.PriceController',
+				'in.codefarm.price.aggregator.service.PriceService',
+			]
+			limit {
+				minimum = 0.80
+			}
+		}
+		rule {
+			element = 'CLASS'
+			includes = [
+				'in.codefarm.price.aggregator.service.PriceCacheService',
+			]
+			limit {
+				minimum = 0.70
+			}
+		}
+	}
+}
