@@ -12,7 +12,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -21,14 +20,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = {
-    "spring.data.redis.host=localhost",
-    "spring.data.redis.port=6379",
-    "spring.data.redis.repositories.enabled=false",
-    "price.fetch.timeout-ms=5000",
-    "price.pool.core-size=3",
-    "price.pool.max-size=5"
-})
 @DisplayName("PriceController Integration Tests")
 class PriceControllerIntegrationTest {
 
@@ -112,6 +103,7 @@ class PriceControllerIntegrationTest {
 
         assertNotNull(results);
         assertEquals(3, results.size());
+
     }
 
     @Test

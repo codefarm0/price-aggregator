@@ -148,7 +148,7 @@ price:walmart:iphone-15 → 779.99
 ```yaml
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:8.6-trixie
     container_name: price-aggregator-redis
     ports:
       - "6379:6379"

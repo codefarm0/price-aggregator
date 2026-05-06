@@ -36,7 +36,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
 	testImplementation "org.testcontainers:testcontainers:${testcontainersVersion}"
-	testImplementation("org.testcontainers:junit-jupiter:${testcontainersJunitVersion}")
+	testImplementation "org.testcontainers:junit-jupiter:${testcontainersJunitVersion}"
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -77,10 +77,21 @@ jacocoTestReport {
 }
 
 jacocoTestCoverageVerification {
+	dependsOn test
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				'in/codefarm/price/aggregator/PriceAggregatorApplication.class',
+				'in/codefarm/price/aggregator/config/*',
+				'in/codefarm/price/aggregator/dto/*',
+				'in/codefarm/price/aggregator/mock/**'
+			])
+		}))
+	}
 	violationRules {
 		rule {
 			limit {
-				minimum = 0.60
+				minimum = 0.75
 			}
 		}
 		rule {

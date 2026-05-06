@@ -27,11 +27,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests that verify Resilience4j CircuitBreaker behavior end-to-end.
  *
- * Circuit breaker config for these tests (via @TestPropertySource):
- *   slidingWindowSize = 5           — evaluates last 5 calls for failure rate
- *   minimumNumberOfCalls = 3        — needs at least 3 calls before it can OPEN
+ * Circuit breaker config overrides for these tests (via @TestPropertySource):
+ *   slidingWindowSize = 5           — evaluates last 5 calls for failure rate (default: 10)
+ *   minimumNumberOfCalls = 3        — needs at least 3 calls before it can OPEN (default: 5)
  *   failureRateThreshold = 50%      — opens when >= 50% of calls fail
- *   waitDurationInOpenState = 2s    — waits 2s before transitioning to HALF_OPEN
+ *   waitDurationInOpenState = 2s    — waits 2s before transitioning to HALF_OPEN (default: 5s)
  *   slowCallDurationThreshold = 1s  — calls > 1s are counted as slow
  *
  * State machine:
@@ -43,26 +43,16 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
-    "spring.data.redis.host=localhost",
-    "spring.data.redis.port=6379",
-    "spring.data.redis.repositories.enabled=false",
-    "price.fetch.timeout-ms=5000",
-    "price.pool.core-size=3",
     "resilience4j.circuitbreaker.instances.amazon.slidingWindowSize=5",
     "resilience4j.circuitbreaker.instances.amazon.minimumNumberOfCalls=3",
-    "resilience4j.circuitbreaker.instances.amazon.failureRateThreshold=50",
     "resilience4j.circuitbreaker.instances.amazon.waitDurationInOpenState=2s",
-    "resilience4j.circuitbreaker.instances.amazon.slowCallDurationThreshold=1000ms",
-    "resilience4j.circuitbreaker.instances.amazon.slowCallRateThreshold=50",
     "resilience4j.circuitbreaker.instances.amazon.permittedNumberOfCallsInHalfOpenState=1",
     "resilience4j.circuitbreaker.instances.flipkart.slidingWindowSize=5",
     "resilience4j.circuitbreaker.instances.flipkart.minimumNumberOfCalls=3",
-    "resilience4j.circuitbreaker.instances.flipkart.failureRateThreshold=50",
     "resilience4j.circuitbreaker.instances.flipkart.waitDurationInOpenState=2s",
     "resilience4j.circuitbreaker.instances.flipkart.permittedNumberOfCallsInHalfOpenState=1",
     "resilience4j.circuitbreaker.instances.walmart.slidingWindowSize=5",
     "resilience4j.circuitbreaker.instances.walmart.minimumNumberOfCalls=3",
-    "resilience4j.circuitbreaker.instances.walmart.failureRateThreshold=50",
     "resilience4j.circuitbreaker.instances.walmart.waitDurationInOpenState=2s",
     "resilience4j.circuitbreaker.instances.walmart.permittedNumberOfCallsInHalfOpenState=1"
 })
