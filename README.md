@@ -82,7 +82,13 @@ price-aggregator/                    # Main aggregator service
 ├── src/test/java/                  # Unit + Integration tests (54 tests)
 │   ├── unit/                       # Unit tests (mocked dependencies)
 │   └── integration/                # Integration tests (WireMock + Testcontainers)
-├── docs/                           # Project documentation (Part1-Part12)
+├── performance-tests/               # k6 load testing scripts
+│   ├── baseline.js                 # Single VU smoke test
+│   ├── concurrent-load.js          # 10→50→100 VUs stress test
+│   ├── sustained-load.js           # 50 VUs, 10 minutes
+│   ├── cache-hit-vs-miss.js        # Cache performance comparison
+│   └── circuit-breaker.js          # Chaos under load
+├── docs/                           # Project documentation (Part1-Part11)
 ├── medium-stories/ (Medium articles)
 └── README.md
 ```
@@ -155,6 +161,16 @@ Technical articles in `medium-stories/`:
 ## Testing
 
 ```bash
+# Unit + Integration tests
 ./gradlew test
-./cb-test.sh help    # Circuit breaker testing script
+
+# Circuit breaker testing script
+./cb-test.sh help
+
+# Performance tests (requires k6 or Docker)
+./gradlew k6 -Pscript=baseline
+./gradlew k6 -Pscript=concurrent-load
+./gradlew k6 -Pscript=circuit-breaker
+./gradlew k6 -Pscript=cache-hit-vs-miss
+./gradlew k6 -Pscript=sustained-load
 ```

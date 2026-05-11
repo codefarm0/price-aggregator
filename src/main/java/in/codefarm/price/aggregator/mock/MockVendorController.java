@@ -16,7 +16,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-//@RestController
+@RestController
 @RequestMapping("/mock-api")
 public class MockVendorController {
 
