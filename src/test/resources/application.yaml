@@ -1,0 +1,47 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      repositories:
+        enabled: false
+
+vendors:
+  amazon:
+    base-url: http://localhost:8081
+  flipkart:
+    base-url: http://localhost:8082
+  walmart:
+    base-url: http://localhost:8083
+
+price:
+  fetch:
+    timeout-ms: 5000
+  pool:
+    core-size: 3
+    max-size: 10
+    queue-capacity: 100
+    thread-name-prefix: price-fetch-
+  cache:
+    ttl-minutes: 10
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 1000ms
+        slowCallRateThreshold: 50
+    instances:
+      amazon:
+        baseConfig: default
+      flipkart:
+        baseConfig: default
+      walmart:
+        baseConfig: default

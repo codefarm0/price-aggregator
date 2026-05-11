@@ -6,18 +6,17 @@ A Spring Boot microservice that aggregates product prices from multiple external
 
 | Part | Description | Status |
 |------|-------------|--------|
-| [Part1](Part1.md) | Basic Price Fetching (Phases 1-3) | ✅ |
-| [Part2](Part2.md) | Spring Boot Aggregator (REST API + WebClient) | ✅ |
-| [Part3](Part3.md) | Redis Caching Layer | ✅ |
-| [Part4](Part4.md) | Circuit Breaker (Resilience4j) | ✅ |
-| [Part5](Part4.md) | TraceId Propagation & Structured Logging | ✅ |
-| **[Part6](Part4.md)** | **Mock Services Refactoring (Distributed Architecture)** | ✅ |
-| [Part7](Part4.md) | Unit Tests | 🚧 |
-| [Part8](Part4.md) | Integration Tests | 🚧 |
-| [Part9](Part4.md) | Load Testing - Performance Testing | 🚧 |
-| [Part10](Part4.md) | Event-Driven Updates (Kafka) | 🚧 |
-| [Part11](Part4.md) | Micrometer Integration for Observability | 🚧 |
-| [Part12](Part4.md) | ELK Stack for Application Monitoring | 🚧 |
+| [Part1](docs/Part1.md) | Basic Price Fetching (Phases 1-3) | ✅ |
+| [Part2](docs/Part2.md) | Spring Boot Aggregator (REST API + WebClient) | ✅ |
+| [Part3](docs/Part3.md) | Redis Caching Layer | ✅ |
+| [Part4](docs/Part4.md) | Circuit Breaker (Resilience4j) | ✅ |
+| [Part5](docs/Part5.md) | TraceId Propagation & Structured Logging | ✅ |
+| **[Part6](docs/Part6.md)** | **Mock Services Refactoring (Distributed Architecture)** | ✅ |
+| **[Part7](docs/Part7.md)** | **Testing Strategy & JaCoCo Quality Gates** | ✅ |
+| [Part8](docs/Part8.md) | Load Testing - Performance Testing | 🚧 |
+| [Part9](docs/Part9.md) | Event-Driven Updates (Kafka) | 🚧 |
+| [Part10](docs/Part10.md) | Micrometer Integration for Observability | 🚧 |
+| [Part11](docs/Part11.md) | ELK Stack for Application Monitoring | 🚧 |
 
 ## Quick Start
 
@@ -80,27 +79,12 @@ price-aggregator/                    # Main aggregator service
 │   ├── external/ (AmazonClient, FlipkartClient, WalmartClient)
 │   ├── service/ (PriceService, PriceCacheService)
 │   └── dto/ (PriceResult, PriceSource)
+├── src/test/java/                  # Unit + Integration tests (54 tests)
+│   ├── unit/                       # Unit tests (mocked dependencies)
+│   └── integration/                # Integration tests (WireMock + Testcontainers)
+├── docs/                           # Project documentation (Part1-Part12)
 ├── medium-stories/ (Medium articles)
-├── Part1.md, Part2.md, Part3.md, Part4.md
 └── README.md
-
-amazon-mock/                         # Standalone Amazon mock service
-├── src/main/java/in/codefarm/amazon/mock/
-│   ├── AmazonMockApplication.java
-│   ├── controller/AmazonMockController.java
-│   ├── config/TraceIdFilter.java
-│   └── dto/PriceResponse.java
-└── GitHub: github.com/code-farm0/amazon-mock
-
-flipkart-mock/                      # Standalone Flipkart mock service
-├── src/main/java/in/codefarm/flipkart/mock/
-│   └── (similar structure)
-└── GitHub: github.com/code-farm0/flipkart-mock
-
-walmart-mock/                       # Standalone Walmart mock service
-├── src/main/java/in/codefarm/walmart/mock/
-│   └── (similar structure)
-└── GitHub: github.com/code-farm0/walmart-mock
 ```
 
 ## Mock Services (Distributed Architecture)
@@ -137,27 +121,24 @@ The mock vendor APIs have been **extracted into separate Spring Boot services** 
 
 ## Documentation
 
-All documentation is in the project root:
-- `Part1.md` - Basic Price Fetching
-- `Part2.md` - Spring Boot Aggregator
-- `Part3.md` - Redis Caching
-- `Part4.md` - Circuit Breaker + TraceId + Logging
-- `Part6.md` - Mock Services Refactoring (Distributed Architecture)
-
-## Medium Stories
-
-Technical articles in `medium-stories/`:
-- `01-thread-pool-mdc-propagation.md` - Building MDC-Aware Thread Pool
-- `02-resilience-circuit-breaker.md` - Resilience4j Patterns
-
-## Documentation
-
 All documentation is in the [docs/](docs/) folder:
 - [Part 1: Basic Price Fetching](docs/Part1.md)
 - [Part 2: Spring Boot Aggregator](docs/Part2.md)
 - [Part 3: Redis Caching](docs/Part3.md)
 - [Part 4: Circuit Breaker](docs/Part4.md)
 - [Part 5: TraceId & Logging](docs/Part5.md)
+- [Part 6: Mock Services (Distributed Architecture)](docs/Part6.md)
+- [Part 7: Testing Strategy & JaCoCo Quality Gates](docs/Part7.md)
+- [Part 8: Load Testing](docs/Part8.md)
+- [Part 9: Event-Driven Updates (Kafka)](docs/Part9.md)
+- [Part 10: Micrometer Observability](docs/Part10.md)
+- [Part 11: ELK Stack Monitoring](docs/Part11.md)
+
+## Medium Stories
+
+Technical articles in `medium-stories/`:
+- `01-thread-pool-mdc-propagation.md` - Building MDC-Aware Thread Pool
+- `02-resilience-circuit-breaker.md` - Resilience4j Patterns
 
 ## Docker Files
 
