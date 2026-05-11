@@ -115,3 +115,64 @@ jacocoTestCoverageVerification {
 		}
 	}
 }
+
+// Performance Testing with k6
+def k6Script = project.findProperty('script') ?: 'baseline'
+def k6Args = project.findProperty('args') ?: ''
+def k6ScriptFile = file("performance-tests/${k6Script}.js")
+
+tasks.register('k6') {
+	group = 'verification'
+	description = 'Run k6 performance tests'
+
+	doLast {
+		def baseUrl = System.getenv('K6_BASE_URL') ?: 'http://localhost:8080'
+
+		if (!k6ScriptFile.exists()) {
+			throw new GradleException("Performance test script not found: ${k6ScriptFile}")
+		}
+
+		def hasK6 = commandExists('k6')
+
+		def pb = hasK6
+			? new ProcessBuilder("k6", "run", k6ScriptFile.absolutePath)
+			: new ProcessBuilder(
+				"docker", "run", "--rm", "-v", "${projectDir}/performance-tests:/scripts",
+				"-i", "grafana/k6:latest", "run", "/scripts/${k6Script}.js"
+			)
+
+		if (k6Args) {
+			def argsList = new ArrayList<>(pb.command())
+			k6Args.split(' ').each { argsList.add(it) }
+			pb.command(argsList)
+		}
+
+		def env = pb.environment()
+		env.put("K6_BASE_URL", baseUrl)
+		pb.inheritIO()
+
+		def process = pb.start()
+		def exitCode = process.waitFor()
+
+		// Exit code 99 = threshold failures (informational, not a build failure)
+		// Any other non-zero exit code = real error
+		if (exitCode != 0 && exitCode != 99) {
+			throw new GradleException("k6 test failed with exit code ${exitCode}")
+		}
+		if (exitCode == 99) {
+			println "\n⚠️  Some thresholds were not met. See results above for details."
+		}
+	}
+}
+
+def commandExists(String cmd) {
+	try {
+		def pb = new ProcessBuilder("which", cmd)
+		pb.redirectErrorStream(true)
+		def process = pb.start()
+		def exitCode = process.waitFor()
+		return exitCode == 0
+	} catch (Exception e) {
+		return false
+	}
+}

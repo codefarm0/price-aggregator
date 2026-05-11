@@ -52,3 +52,4 @@ public class PriceConfig {
         return executor;
     }
 }
+
